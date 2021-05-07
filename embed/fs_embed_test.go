@@ -1,16 +1,14 @@
 // +build go1.16
 
-package render
+package embed
 
 import (
-	"embed"
+	"github.com/unrolled/render"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
-
-//go:embed fixtures/*/*.html fixtures/*/*.tmpl fixtures/*/*/*.tmpl fixtures/*/*.amber fixtures/*/*/*.amber
-var EmbedFixtures embed.FS
 
 func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 	baseDir := "fixtures/template-dir-test"
@@ -19,11 +17,11 @@ func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 	fnameShouldParsedRel := "dedicated.tmpl/notbad"
 	dirShouldNotParsedRel := "dedicated"
 
-	r := New(Options{
+	r := render.New(render.Options{
 		Directory:  baseDir,
 		Extensions: []string{".tmpl", ".html"},
-		FileSystem: &EmbedFileSystem{
-			FS: EmbedFixtures,
+		FileSystem: &render.EmbedFileSystem{
+			FS: Fixtures,
 		},
 	})
 
@@ -34,16 +32,16 @@ func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 }
 
 func TestEmbedFileSystemHTMLBasic(t *testing.T) {
-	render := New(Options{
+	r := render.New(render.Options{
 		Directory: "fixtures/basic",
-		FileSystem: &EmbedFileSystem{
-			FS: EmbedFixtures,
+		FileSystem: &render.EmbedFileSystem{
+			FS: Fixtures,
 		},
 	})
 
 	var err error
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err = render.HTML(w, http.StatusOK, "hello", "gophers")
+	h := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		err = r.HTML(resp, http.StatusOK, "hello", "gophers")
 	})
 
 	res := httptest.NewRecorder()
@@ -52,6 +50,19 @@ func TestEmbedFileSystemHTMLBasic(t *testing.T) {
 
 	expectNil(t, err)
 	expect(t, res.Code, 200)
-	expect(t, res.Header().Get(ContentType), ContentHTML+"; charset=UTF-8")
+	expect(t, res.Header().Get(render.ContentType), render.ContentHTML+"; charset=UTF-8")
 	expect(t, res.Body.String(), "<h1>Hello gophers</h1>\n")
+}
+
+/* Test Helper */
+func expect(t *testing.T, a interface{}, b interface{}) {
+	if a != b {
+		t.Errorf("Expected ||%#v|| (type %v) - Got ||%#v|| (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
+	}
+}
+
+func expectNil(t *testing.T, a interface{}) {
+	if a != nil {
+		t.Errorf("Expected ||nil|| - Got ||%#v|| (type %v)", a, reflect.TypeOf(a))
+	}
 }
