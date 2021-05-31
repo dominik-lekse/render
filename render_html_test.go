@@ -22,7 +22,7 @@ func TestHTMLBad(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNotNil(t, err)
@@ -34,7 +34,7 @@ func TestHTMLBadDisableHTTPErrorRendering(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		FileSystem:                LocalFS("fixtures/basic"),
+		FileSystem:                LocalFS("testdata/basic"),
 		DisableHTTPErrorRendering: true,
 	})
 	requireNoError(t, err)
@@ -44,7 +44,7 @@ func TestHTMLBadDisableHTTPErrorRendering(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNotNil(t, err)
@@ -56,7 +56,7 @@ func TestHTMLBasic(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/basic"),
+		FileSystem: LocalFS("testdata/basic"),
 	})
 	requireNoError(t, err)
 
@@ -65,7 +65,7 @@ func TestHTMLBasic(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -78,7 +78,7 @@ func BenchmarkBigHTMLBuffers(b *testing.B) {
 	b.ReportAllocs()
 
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/basic"),
+		FileSystem: LocalFS("testdata/basic"),
 	})
 	if err != nil {
 		b.FailNow()
@@ -86,7 +86,7 @@ func BenchmarkBigHTMLBuffers(b *testing.B) {
 
 	var buf = new(bytes.Buffer)
 	for i := 0; i < b.N; i++ {
-		render.HTML(buf, http.StatusOK, "hello", "gophers")
+		_ = render.HTML(buf, http.StatusOK, "hello", "gophers")
 		buf.Reset()
 	}
 }
@@ -95,7 +95,7 @@ func BenchmarkSmallHTMLBuffers(b *testing.B) {
 	b.ReportAllocs()
 
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/basic"),
+		FileSystem: LocalFS("testdata/basic"),
 
 		// Tiny 8 bytes buffers -> should lead to allocations
 		// on every template render
@@ -107,7 +107,7 @@ func BenchmarkSmallHTMLBuffers(b *testing.B) {
 
 	var buf = new(bytes.Buffer)
 	for i := 0; i < b.N; i++ {
-		render.HTML(buf, http.StatusOK, "hello", "gophers")
+		_ = render.HTML(buf, http.StatusOK, "hello", "gophers")
 		buf.Reset()
 	}
 }
@@ -116,7 +116,7 @@ func TestHTMLXHTML(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		FileSystem:      LocalFS("fixtures/basic"),
+		FileSystem:      LocalFS("testdata/basic"),
 		HTMLContentType: ContentXHTML,
 	})
 	requireNoError(t, err)
@@ -126,7 +126,7 @@ func TestHTMLXHTML(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -139,7 +139,7 @@ func TestHTMLExtensions(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/basic"),
+		FileSystem: LocalFS("testdata/basic"),
 		Extensions: []string{".tmpl", ".html"},
 	})
 	requireNoError(t, err)
@@ -149,7 +149,7 @@ func TestHTMLExtensions(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -162,7 +162,7 @@ func TestHTMLFuncs(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/custom_funcs"),
+		FileSystem: LocalFS("testdata/custom_funcs"),
 		Funcs: []template.FuncMap{{
 			"myCustomFunc": func() string {
 				return "My custom function"
@@ -176,7 +176,7 @@ func TestHTMLFuncs(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -187,7 +187,7 @@ func TestRenderLayout(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 		Layout:    "layout",
 	})
 	requireNoError(t, err)
@@ -197,7 +197,7 @@ func TestRenderLayout(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -208,7 +208,7 @@ func TestHTMLLayoutCurrent(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 		Layout:    "current_layout",
 	})
 	requireNoError(t, err)
@@ -218,7 +218,7 @@ func TestHTMLLayoutCurrent(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -229,7 +229,7 @@ func TestHTMLNested(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 	})
 	requireNoError(t, err)
 
@@ -238,7 +238,7 @@ func TestHTMLNested(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -251,7 +251,7 @@ func TestHTMLBadPath(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory: "../../../../../../../../../../../../../../../../fixtures/basic",
+		Directory: "../../../../../../../../../../../../../../../../testdata/basic",
 	})
 	requireNoError(t, err)
 
@@ -260,7 +260,7 @@ func TestHTMLBadPath(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNotNil(t, err)
@@ -272,7 +272,7 @@ func TestHTMLDelimiters(t *testing.T) {
 
 	render, err := New(Options{
 		Delims:    Delims{"{[{", "}]}"},
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 	})
 	requireNoError(t, err)
 
@@ -281,7 +281,7 @@ func TestHTMLDelimiters(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -294,7 +294,7 @@ func TestHTMLDefaultCharset(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 	})
 	requireNoError(t, err)
 
@@ -303,7 +303,7 @@ func TestHTMLDefaultCharset(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -319,7 +319,7 @@ func TestHTMLOverrideLayout(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 		Layout:    "layout",
 	})
 	requireNoError(t, err)
@@ -331,7 +331,7 @@ func TestHTMLOverrideLayout(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -343,7 +343,7 @@ func TestHTMLOverrideLayout(t *testing.T) {
 func TestHTMLNoRace(t *testing.T) {
 	// This test used to fail if run with -race
 	render, err := New(Options{
-		Directory: "fixtures/basic",
+		Directory: "testdata/basic",
 	})
 	requireNoError(t, err)
 
@@ -356,7 +356,7 @@ func TestHTMLNoRace(t *testing.T) {
 	done := make(chan bool)
 	doreq := func() {
 		res := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/foo", nil)
+		req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 
 		h.ServeHTTP(res, req)
 
@@ -405,7 +405,7 @@ func TestHTMLLoadFromAssets(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
@@ -415,7 +415,7 @@ func TestHTMLLoadFromAssets(t *testing.T) {
 }
 
 func TestCompileTemplatesFromDir(t *testing.T) {
-	baseDir := "fixtures/template-dir-test"
+	baseDir := "testdata/template-dir-test"
 	fname0Rel := "0"
 	fname1Rel := "subdir/1"
 	fnameShouldParsedRel := "dedicated.tmpl/notbad"
@@ -440,7 +440,7 @@ func TestHTMLDisabledCharset(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		Directory:      "fixtures/basic",
+		Directory:      "testdata/basic",
 		DisableCharset: true,
 	})
 	requireNoError(t, err)
@@ -450,7 +450,7 @@ func TestHTMLDisabledCharset(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)

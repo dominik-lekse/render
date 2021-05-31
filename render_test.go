@@ -1,11 +1,44 @@
 package render
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 )
+
+var ctx = context.Background()
+
+func TestLockConfig(t *testing.T) {
+	mutex := reflect.TypeOf(&sync.RWMutex{}).Kind()
+	empty := reflect.TypeOf(&emptyLock{}).Kind()
+
+	r1 := New(Options{
+		IsDevelopment: true,
+		UseMutexLock:  false,
+	})
+	expect(t, reflect.TypeOf(r1.lock).Kind(), mutex)
+
+	r2 := New(Options{
+		IsDevelopment: true,
+		UseMutexLock:  true,
+	})
+	expect(t, reflect.TypeOf(r2.lock).Kind(), mutex)
+
+	r3 := New(Options{
+		IsDevelopment: false,
+		UseMutexLock:  true,
+	})
+	expect(t, reflect.TypeOf(r3.lock).Kind(), mutex)
+
+	r4 := New(Options{
+		IsDevelopment: false,
+		UseMutexLock:  false,
+	})
+	expect(t, reflect.TypeOf(r4.lock).Kind(), empty)
+}
 
 /* Benchmarks */
 func BenchmarkNormalJSON(b *testing.B) {
@@ -15,11 +48,11 @@ func BenchmarkNormalJSON(b *testing.B) {
 	}
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, 200, Greeting{"hello", "world"})
+		_ = render.JSON(w, 200, Greeting{"hello", "world"})
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 
 	for i := 0; i < b.N; i++ {
 		h.ServeHTTP(res, req)
@@ -35,11 +68,11 @@ func BenchmarkStreamingJSON(b *testing.B) {
 	}
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		render.JSON(w, 200, Greeting{"hello", "world"})
+		_ = render.JSON(w, 200, Greeting{"hello", "world"})
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 
 	for i := 0; i < b.N; i++ {
 		h.ServeHTTP(res, req)
@@ -48,7 +81,7 @@ func BenchmarkStreamingJSON(b *testing.B) {
 
 func BenchmarkHTML(b *testing.B) {
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/basic"),
+		FileSystem: LocalFS("testdata/basic"),
 	})
 	if err != nil {
 		b.FailNow()
@@ -57,7 +90,7 @@ func BenchmarkHTML(b *testing.B) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {

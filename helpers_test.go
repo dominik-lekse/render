@@ -8,8 +8,8 @@ import (
 
 func TestRenderPartial(t *testing.T) {
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/partials"),
-		Layout:     "layout",
+		Directory: "testdata/partials",
+		Layout:    "layout",
 	})
 	expectNil(t, err)
 
@@ -19,7 +19,7 @@ func TestRenderPartial(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/foo", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	if err != nil {
 		t.Fatalf("couldn't create a request. err = %s", err)
 	}
@@ -31,18 +31,18 @@ func TestRenderPartial(t *testing.T) {
 
 func TestRenderPartialRequirePartialsOff(t *testing.T) {
 	render, err := New(Options{
-		FileSystem:      LocalFS("fixtures/partials"),
+		Directory:       "testdata/partials",
 		Layout:          "layout",
 		RequirePartials: false,
 	})
 	expectNil(t, err)
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		render.HTML(w, http.StatusOK, "content-partial", "gophers")
+		_ = render.HTML(w, http.StatusOK, "content-partial", "gophers")
 	})
 
 	res := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/foo", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	if err != nil {
 		t.Fatalf("couldn't create a request. err = %s", err)
 	}
@@ -53,18 +53,18 @@ func TestRenderPartialRequirePartialsOff(t *testing.T) {
 
 func TestRenderPartialRequirePartialsOn(t *testing.T) {
 	render, err := New(Options{
-		FileSystem:      LocalFS("fixtures/partials"),
+		Directory:       "testdata/partials",
 		Layout:          "layout",
 		RequirePartials: true,
 	})
 	expectNil(t, err)
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		render.HTML(w, http.StatusOK, "content-partial", "gophers")
+		_ = render.HTML(w, http.StatusOK, "content-partial", "gophers")
 	})
 
 	res := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/foo", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	if err != nil {
 		t.Fatalf("couldn't create a request. err = %s", err)
 	}

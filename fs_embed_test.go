@@ -10,11 +10,11 @@ import (
 	"testing"
 )
 
-//go:embed fixtures/*/*.html fixtures/*/*.tmpl fixtures/*/*/*.tmpl fixtures/*/*.amber fixtures/*/*/*.amber
+//go:embed testdata/*/*.html testdata/*/*.tmpl testdata/*/*/*.tmpl
 var EmbedFixtures embed.FS
 
 func TestEmbedFileSystemTemplateLookup(t *testing.T) {
-	baseDir := "fixtures/template-dir-test"
+	baseDir := "testdata/template-dir-test"
 	fname0Rel := "0"
 	fname1Rel := "subdir/1"
 	fnameShouldParsedRel := "dedicated.tmpl/notbad"
@@ -51,7 +51,7 @@ func TestEmbedFileSystemHTMLBasic(t *testing.T) {
 	})
 
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
 	expectNil(t, err)
