@@ -7,10 +7,11 @@ import (
 )
 
 func TestRenderPartial(t *testing.T) {
-	render := New(Options{
-		Directory: "fixtures/partials",
-		Layout:    "layout",
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/partials"),
+		Layout:     "layout",
 	})
+	expectNil(t, err)
 
 	var renErr error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,11 +30,12 @@ func TestRenderPartial(t *testing.T) {
 }
 
 func TestRenderPartialRequirePartialsOff(t *testing.T) {
-	render := New(Options{
-		Directory:       "fixtures/partials",
+	render, err := New(Options{
+		FileSystem:      LocalFS("fixtures/partials"),
 		Layout:          "layout",
 		RequirePartials: false,
 	})
+	expectNil(t, err)
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		render.HTML(w, http.StatusOK, "content-partial", "gophers")
@@ -50,11 +52,12 @@ func TestRenderPartialRequirePartialsOff(t *testing.T) {
 }
 
 func TestRenderPartialRequirePartialsOn(t *testing.T) {
-	render := New(Options{
-		Directory:       "fixtures/partials",
+	render, err := New(Options{
+		FileSystem:      LocalFS("fixtures/partials"),
 		Layout:          "layout",
 		RequirePartials: true,
 	})
+	expectNil(t, err)
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		render.HTML(w, http.StatusOK, "content-partial", "gophers")

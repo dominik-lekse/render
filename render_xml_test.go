@@ -14,11 +14,13 @@ type GreetingXML struct {
 }
 
 func TestXMLBasic(t *testing.T) {
-	render := New(Options{
-	// nothing here to configure
-	})
-
 	var err error
+
+	render, err := New(Options{
+		// nothing here to configure
+	})
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.XML(w, 299, GreetingXML{One: "hello", Two: "world"})
 	})
@@ -34,12 +36,14 @@ func TestXMLBasic(t *testing.T) {
 }
 
 func TestXMLPrefix(t *testing.T) {
+	var err error
+
 	prefix := "<?xml version='1.0' encoding='UTF-8'?>\n"
-	render := New(Options{
+	render, err := New(Options{
 		PrefixXML: []byte(prefix),
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.XML(w, 300, GreetingXML{One: "hello", Two: "world"})
 	})
@@ -55,11 +59,13 @@ func TestXMLPrefix(t *testing.T) {
 }
 
 func TestXMLIndented(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		IndentXML: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.XML(w, http.StatusOK, GreetingXML{One: "hello", Two: "world"})
 	})
@@ -75,11 +81,13 @@ func TestXMLIndented(t *testing.T) {
 }
 
 func TestXMLWithError(t *testing.T) {
-	render := New(Options{
-	// nothing here to configure
-	})
-
 	var err error
+
+	render, err := New(Options{
+		// nothing here to configure
+	})
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.XML(w, 299, map[string]string{"foo": "bar"})
 	})
@@ -93,11 +101,13 @@ func TestXMLWithError(t *testing.T) {
 }
 
 func TestXMLCustomContentType(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		XMLContentType: "application/customxml",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.XML(w, http.StatusOK, GreetingXML{One: "hello", Two: "world"})
 	})
@@ -113,11 +123,13 @@ func TestXMLCustomContentType(t *testing.T) {
 }
 
 func TestXMLDisabledCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		DisableCharset: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.XML(w, http.StatusOK, GreetingXML{One: "hello", Two: "world"})
 	})

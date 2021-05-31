@@ -7,9 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -51,11 +48,7 @@ type Options struct {
 	// Directory to load templates. Default is "templates".
 	Directory string
 	// FileSystem to access files
-	FileSystem FileSystem
-	// Asset function to use in place of directory. Defaults to nil.
-	Asset func(name string) ([]byte, error)
-	// AssetNames function to use in place of directory. Defaults to nil.
-	AssetNames func() []string
+	FileSystem FS
 	// Layout template name. Will not render a layout if blank (""). Defaults to blank ("").
 	Layout string
 	// Extensions to parse template files from. Defaults to [".tmpl"].
@@ -88,8 +81,8 @@ type Options struct {
 	TextContentType string
 	// Allows changing the XML content type.
 	XMLContentType string
-	// If IsDevelopment is set to true, this will recompile the templates on every request. Default is false.
-	IsDevelopment bool
+	// If Recompile is set to true, this will recompile the templates on every request. Default is false.
+	Recompile bool
 	// Unescape HTML characters "&<>" to their original values. Default is false.
 	UnEscapeHTML bool
 	// Streams JSON responses instead of marshalling prior to sending. Default is false.
@@ -128,7 +121,7 @@ type Render struct {
 }
 
 // New constructs a new Render instance with the supplied options.
-func New(options ...Options) *Render {
+func New(options ...Options) (*Render, error) {
 	var o Options
 	if len(options) > 0 {
 		o = options[0]
@@ -139,9 +132,21 @@ func New(options ...Options) *Render {
 	}
 
 	r.prepareOptions()
-	r.compileTemplates()
+	err := r.compileTemplates()
+	if err != nil {
+		return nil, err
+	}
 
-	return &r
+	return &r, nil
+}
+
+// Must constructs a new Render instance with the supplied options, but panics in contrast to New when an error occurs
+func Must(options ...Options) *Render {
+	r, err := New(options...)
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
 
 func (r *Render) prepareOptions() {
@@ -157,7 +162,7 @@ func (r *Render) prepareOptions() {
 		r.opt.Directory = "templates"
 	}
 	if r.opt.FileSystem == nil {
-		r.opt.FileSystem = &LocalFileSystem{}
+		r.opt.FileSystem = LocalFS(r.opt.Directory)
 	}
 	if len(r.opt.Extensions) == 0 {
 		r.opt.Extensions = []string{".tmpl"}
@@ -186,113 +191,8 @@ func (r *Render) prepareOptions() {
 	}
 }
 
-func (r *Render) compileTemplates() {
-	if r.opt.Asset == nil || r.opt.AssetNames == nil {
-		r.compileTemplatesFromDir()
-		return
-	}
-	r.compileTemplatesFromAsset()
-}
-
-func (r *Render) compileTemplatesFromDir() {
-	dir := r.opt.Directory
-	tmpTemplates := template.New(dir)
-	tmpTemplates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
-
-	// Walk the supplied directory and compile any files that match our extension list.
-	r.opt.FileSystem.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		// Fix same-extension-dirs bug: some dir might be named to: "users.tmpl", "local.html".
-		// These dirs should be excluded as they are not valid golang templates, but files under
-		// them should be treat as normal.
-		// If is a dir, return immediately (dir is not a valid golang template).
-		if info == nil || info.IsDir() {
-			return nil
-		}
-
-		rel, err := filepath.Rel(dir, path)
-		if err != nil {
-			return err
-		}
-
-		ext := ""
-		if strings.Index(rel, ".") != -1 {
-			ext = filepath.Ext(rel)
-		}
-
-		for _, extension := range r.opt.Extensions {
-			if ext == extension {
-				buf, err := r.opt.FileSystem.ReadFile(path)
-				if err != nil {
-					panic(err)
-				}
-
-				name := (rel[0 : len(rel)-len(ext)])
-				tmpl := tmpTemplates.New(filepath.ToSlash(name))
-
-				// Add our funcmaps.
-				for _, funcs := range r.opt.Funcs {
-					tmpl.Funcs(funcs)
-				}
-
-				// Break out if this parsing fails. We don't want any silent server starts.
-				template.Must(tmpl.Funcs(helperFuncs).Parse(string(buf)))
-				break
-			}
-		}
-		return nil
-	})
-
-	r.templatesLk.Lock()
-	r.templates = tmpTemplates
-	r.templatesLk.Unlock()
-}
-
-func (r *Render) compileTemplatesFromAsset() {
-	dir := r.opt.Directory
-	tmpTemplates := template.New(dir)
-	tmpTemplates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
-
-	for _, path := range r.opt.AssetNames() {
-		if !strings.HasPrefix(path, dir) {
-			continue
-		}
-
-		rel, err := filepath.Rel(dir, path)
-		if err != nil {
-			panic(err)
-		}
-
-		ext := ""
-		if strings.Index(rel, ".") != -1 {
-			ext = "." + strings.Join(strings.Split(rel, ".")[1:], ".")
-		}
-
-		for _, extension := range r.opt.Extensions {
-			if ext == extension {
-
-				buf, err := r.opt.Asset(path)
-				if err != nil {
-					panic(err)
-				}
-
-				name := (rel[0 : len(rel)-len(ext)])
-				tmpl := tmpTemplates.New(filepath.ToSlash(name))
-
-				// Add our funcmaps.
-				for _, funcs := range r.opt.Funcs {
-					tmpl.Funcs(funcs)
-				}
-
-				// Break out if this parsing fails. We don't want any silent server starts.
-				template.Must(tmpl.Funcs(helperFuncs).Parse(string(buf)))
-				break
-			}
-		}
-	}
-
-	r.templatesLk.Lock()
-	r.templates = tmpTemplates
-	r.templatesLk.Unlock()
+func (r *Render) compileTemplates() error {
+	return r.compileTemplatesFromFS()
 }
 
 // TemplateLookup is a wrapper around template.Lookup and returns
@@ -399,8 +299,11 @@ func (r *Render) Data(w io.Writer, status int, v []byte) error {
 func (r *Render) HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...HTMLOptions) error {
 
 	// If we are in development mode, recompile the templates on every HTML request.
-	if r.opt.IsDevelopment {
-		r.compileTemplates()
+	if r.opt.Recompile {
+		err := r.compileTemplates()
+		if err != nil {
+			return err
+		}
 	}
 
 	r.templatesLk.RLock()

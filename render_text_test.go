@@ -7,11 +7,13 @@ import (
 )
 
 func TestTextBasic(t *testing.T) {
-	render := New(Options{
-	// nothing here to configure
-	})
-
 	var err error
+
+	render, err := New(Options{
+		// nothing here to configure
+	})
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.Text(w, 299, "Hello Text!")
 	})
@@ -27,11 +29,13 @@ func TestTextBasic(t *testing.T) {
 }
 
 func TestTextCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Charset: "foobar",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.Text(w, 299, "Hello Text!")
 	})
@@ -47,11 +51,13 @@ func TestTextCharset(t *testing.T) {
 }
 
 func TestTextSuppliedCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Charset: "foobar",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(ContentType, "text/css")
 		err = render.Text(w, 200, "html{color:red}")
@@ -68,11 +74,13 @@ func TestTextSuppliedCharset(t *testing.T) {
 }
 
 func TestTextCustomContentType(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		TextContentType: "application/customtext",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.Text(w, http.StatusOK, "Hello Text!")
 	})
@@ -88,11 +96,13 @@ func TestTextCustomContentType(t *testing.T) {
 }
 
 func TestTextDisabledCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		DisableCharset: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.Text(w, http.StatusOK, "Hello Text!")
 	})

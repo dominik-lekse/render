@@ -4,6 +4,7 @@ package render
 
 import (
 	"embed"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,13 +20,14 @@ func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 	fnameShouldParsedRel := "dedicated.tmpl/notbad"
 	dirShouldNotParsedRel := "dedicated"
 
-	r := New(Options{
-		Directory:  baseDir,
+	fs, err := fs.Sub(EmbedFixtures, baseDir)
+	expectNil(t, err)
+
+	r, err := New(Options{
 		Extensions: []string{".tmpl", ".html"},
-		FileSystem: &EmbedFileSystem{
-			FS: EmbedFixtures,
-		},
+		FileSystem: fs,
 	})
+	expectNil(t, err)
 
 	expect(t, r.TemplateLookup(fname1Rel) != nil, true)
 	expect(t, r.TemplateLookup(fname0Rel) != nil, true)
@@ -34,14 +36,16 @@ func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 }
 
 func TestEmbedFileSystemHTMLBasic(t *testing.T) {
-	render := New(Options{
-		Directory: "fixtures/basic",
-		FileSystem: &EmbedFileSystem{
-			FS: EmbedFixtures,
-		},
-	})
-
 	var err error
+
+	fs, err := fs.Sub(EmbedFixtures, "fixtures/basic")
+	expectNil(t, err)
+
+	render, err := New(Options{
+		FileSystem: fs,
+	})
+	expectNil(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})

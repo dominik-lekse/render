@@ -9,7 +9,10 @@ import (
 
 /* Benchmarks */
 func BenchmarkNormalJSON(b *testing.B) {
-	render := New()
+	render, err := New()
+	if err != nil {
+		b.FailNow()
+	}
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, 200, Greeting{"hello", "world"})
@@ -24,9 +27,12 @@ func BenchmarkNormalJSON(b *testing.B) {
 }
 
 func BenchmarkStreamingJSON(b *testing.B) {
-	render := New(Options{
+	render, err := New(Options{
 		StreamingJSON: true,
 	})
+	if err != nil {
+		b.FailNow()
+	}
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, 200, Greeting{"hello", "world"})
@@ -41,9 +47,12 @@ func BenchmarkStreamingJSON(b *testing.B) {
 }
 
 func BenchmarkHTML(b *testing.B) {
-	render := New(Options{
-		Directory: "fixtures/basic",
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/basic"),
 	})
+	if err != nil {
+		b.FailNow()
+	}
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = render.HTML(w, http.StatusOK, "hello", "gophers")
@@ -75,4 +84,20 @@ func expectNotNil(t *testing.T, a interface{}) {
 	if a == nil {
 		t.Errorf("Expected ||not nil|| - Got ||nil|| (type %v)", reflect.TypeOf(a))
 	}
+}
+
+func expectNoError(t *testing.T, err error) bool {
+	if err != nil {
+		t.Errorf("Expected ||no error|| - Got ||%#v||", err)
+		return false
+	}
+
+	return true
+}
+
+func requireNoError(t *testing.T, err error) {
+	if expectNoError(t, err) {
+		return
+	}
+	t.FailNow()
 }

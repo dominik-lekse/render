@@ -13,9 +13,11 @@ type GreetingP struct {
 }
 
 func TestJSONPBasic(t *testing.T) {
-	render := New()
-
 	var err error
+
+	render, err := New()
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.JSONP(w, 299, "helloCallback", GreetingP{"hello", "world"})
 	})
@@ -31,11 +33,13 @@ func TestJSONPBasic(t *testing.T) {
 }
 
 func TestJSONPRenderIndented(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		IndentJSON: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.JSONP(w, http.StatusOK, "helloCallback", GreetingP{"hello", "world"})
 	})
@@ -44,16 +48,18 @@ func TestJSONPRenderIndented(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/foo", nil)
 	h.ServeHTTP(res, req)
 
-	expectNil(t, err)
+	requireNoError(t, err)
 	expect(t, res.Code, http.StatusOK)
 	expect(t, res.Header().Get(ContentType), ContentJSONP+"; charset=UTF-8")
 	expect(t, res.Body.String(), "helloCallback({\n  \"one\": \"hello\",\n  \"two\": \"world\"\n});\n")
 }
 
 func TestJSONPWithError(t *testing.T) {
-	render := New()
-
 	var err error
+
+	render, err := New()
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.JSONP(w, 299, "helloCallback", math.NaN())
 	})
@@ -67,11 +73,13 @@ func TestJSONPWithError(t *testing.T) {
 }
 
 func TestJSONPCustomContentType(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		JSONPContentType: "application/vnd.api+json",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.JSONP(w, http.StatusOK, "helloCallback", GreetingP{"hello", "world"})
 	})
@@ -87,11 +95,13 @@ func TestJSONPCustomContentType(t *testing.T) {
 }
 
 func TestJSONPDisabledCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		DisableCharset: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.JSONP(w, http.StatusOK, "helloCallback", GreetingP{"hello", "world"})
 	})

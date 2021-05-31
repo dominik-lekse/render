@@ -10,11 +10,13 @@ import (
 )
 
 func TestHTMLBad(t *testing.T) {
-	render := New(Options{
-		Directory: "fixtures/basic",
-	})
-
 	var err error
+
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/basic"),
+	})
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "nope", nil)
 	})
@@ -29,12 +31,14 @@ func TestHTMLBad(t *testing.T) {
 }
 
 func TestHTMLBadDisableHTTPErrorRendering(t *testing.T) {
-	render := New(Options{
-		Directory:                 "fixtures/basic",
+	var err error
+
+	render, err := New(Options{
+		FileSystem:                LocalFS("fixtures/basic"),
 		DisableHTTPErrorRendering: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "nope", nil)
 	})
@@ -49,11 +53,13 @@ func TestHTMLBadDisableHTTPErrorRendering(t *testing.T) {
 }
 
 func TestHTMLBasic(t *testing.T) {
-	render := New(Options{
-		Directory: "fixtures/basic",
-	})
-
 	var err error
+
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/basic"),
+	})
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})
@@ -71,9 +77,12 @@ func TestHTMLBasic(t *testing.T) {
 func BenchmarkBigHTMLBuffers(b *testing.B) {
 	b.ReportAllocs()
 
-	render := New(Options{
-		Directory: "fixtures/basic",
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/basic"),
 	})
+	if err != nil {
+		b.FailNow()
+	}
 
 	var buf = new(bytes.Buffer)
 	for i := 0; i < b.N; i++ {
@@ -85,13 +94,16 @@ func BenchmarkBigHTMLBuffers(b *testing.B) {
 func BenchmarkSmallHTMLBuffers(b *testing.B) {
 	b.ReportAllocs()
 
-	render := New(Options{
-		Directory: "fixtures/basic",
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/basic"),
 
 		// Tiny 8 bytes buffers -> should lead to allocations
 		// on every template render
 		BufferPool: NewSizedBufferPool(32, 8),
 	})
+	if err != nil {
+		b.FailNow()
+	}
 
 	var buf = new(bytes.Buffer)
 	for i := 0; i < b.N; i++ {
@@ -101,12 +113,14 @@ func BenchmarkSmallHTMLBuffers(b *testing.B) {
 }
 
 func TestHTMLXHTML(t *testing.T) {
-	render := New(Options{
-		Directory:       "fixtures/basic",
+	var err error
+
+	render, err := New(Options{
+		FileSystem:      LocalFS("fixtures/basic"),
 		HTMLContentType: ContentXHTML,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})
@@ -122,12 +136,14 @@ func TestHTMLXHTML(t *testing.T) {
 }
 
 func TestHTMLExtensions(t *testing.T) {
-	render := New(Options{
-		Directory:  "fixtures/basic",
+	var err error
+
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/basic"),
 		Extensions: []string{".tmpl", ".html"},
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hypertext", nil)
 	})
@@ -143,16 +159,18 @@ func TestHTMLExtensions(t *testing.T) {
 }
 
 func TestHTMLFuncs(t *testing.T) {
-	render := New(Options{
-		Directory: "fixtures/custom_funcs",
+	var err error
+
+	render, err := New(Options{
+		FileSystem: LocalFS("fixtures/custom_funcs"),
 		Funcs: []template.FuncMap{{
 			"myCustomFunc": func() string {
 				return "My custom function"
 			},
 		}},
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "index", "gophers")
 	})
@@ -166,12 +184,14 @@ func TestHTMLFuncs(t *testing.T) {
 }
 
 func TestRenderLayout(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory: "fixtures/basic",
 		Layout:    "layout",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "content", "gophers")
 	})
@@ -185,12 +205,14 @@ func TestRenderLayout(t *testing.T) {
 }
 
 func TestHTMLLayoutCurrent(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory: "fixtures/basic",
 		Layout:    "current_layout",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "content", "gophers")
 	})
@@ -204,11 +226,13 @@ func TestHTMLLayoutCurrent(t *testing.T) {
 }
 
 func TestHTMLNested(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory: "fixtures/basic",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "admin/index", "gophers")
 	})
@@ -224,11 +248,13 @@ func TestHTMLNested(t *testing.T) {
 }
 
 func TestHTMLBadPath(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory: "../../../../../../../../../../../../../../../../fixtures/basic",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})
@@ -242,12 +268,14 @@ func TestHTMLBadPath(t *testing.T) {
 }
 
 func TestHTMLDelimiters(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Delims:    Delims{"{[{", "}]}"},
 		Directory: "fixtures/basic",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "delims", "gophers")
 	})
@@ -263,11 +291,13 @@ func TestHTMLDelimiters(t *testing.T) {
 }
 
 func TestHTMLDefaultCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory: "fixtures/basic",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})
@@ -286,12 +316,14 @@ func TestHTMLDefaultCharset(t *testing.T) {
 }
 
 func TestHTMLOverrideLayout(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory: "fixtures/basic",
 		Layout:    "layout",
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "content", "gophers", HTMLOptions{
 			Layout: "another_layout",
@@ -310,14 +342,16 @@ func TestHTMLOverrideLayout(t *testing.T) {
 
 func TestHTMLNoRace(t *testing.T) {
 	// This test used to fail if run with -race
-	render := New(Options{
+	render, err := New(Options{
 		Directory: "fixtures/basic",
 	})
+	requireNoError(t, err)
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := render.HTML(w, http.StatusOK, "hello", "gophers")
 		expectNil(t, err)
 	})
+	requireNoError(t, err)
 
 	done := make(chan bool)
 	doreq := func() {
@@ -341,23 +375,29 @@ func TestHTMLNoRace(t *testing.T) {
 }
 
 func TestHTMLLoadFromAssets(t *testing.T) {
-	render := New(Options{
-		Asset: func(file string) ([]byte, error) {
-			switch file {
-			case "templates/test.tmpl":
-				return []byte("<h1>gophers</h1>\n"), nil
-			case "templates/layout.tmpl":
-				return []byte("head\n{{ yield }}\nfoot\n"), nil
-			default:
-				return nil, errors.New("file not found: " + file)
-			}
-		},
-		AssetNames: func() []string {
-			return []string{"templates/test.tmpl", "templates/layout.tmpl"}
-		},
-	})
+	t.Skip()
 
 	var err error
+
+	render, err := New(Options{
+		FileSystem: &AssetFS{
+			Asset: func(file string) ([]byte, error) {
+				switch file {
+				case "templates/test.tmpl":
+					return []byte("<h1>gophers</h1>\n"), nil
+				case "templates/layout.tmpl":
+					return []byte("head\n{{ yield }}\nfoot\n"), nil
+				default:
+					return nil, errors.New("file not found: " + file)
+				}
+			},
+			AssetNames: func() []string {
+				return []string{"templates/test.tmpl", "templates/layout.tmpl"}
+			},
+		},
+	})
+	requireNoError(t, err)
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "test", "gophers", HTMLOptions{
 			Layout: "layout",
@@ -381,11 +421,14 @@ func TestCompileTemplatesFromDir(t *testing.T) {
 	fnameShouldParsedRel := "dedicated.tmpl/notbad"
 	dirShouldNotParsedRel := "dedicated"
 
-	r := New(Options{
+	r, err := New(Options{
 		Directory:  baseDir,
 		Extensions: []string{".tmpl", ".html"},
 	})
-	r.compileTemplatesFromDir()
+	requireNoError(t, err)
+
+	err = r.compileTemplates()
+	requireNoError(t, err)
 
 	expect(t, r.TemplateLookup(fname1Rel) != nil, true)
 	expect(t, r.TemplateLookup(fname0Rel) != nil, true)
@@ -394,12 +437,14 @@ func TestCompileTemplatesFromDir(t *testing.T) {
 }
 
 func TestHTMLDisabledCharset(t *testing.T) {
-	render := New(Options{
+	var err error
+
+	render, err := New(Options{
 		Directory:      "fixtures/basic",
 		DisableCharset: true,
 	})
+	requireNoError(t, err)
 
-	var err error
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err = render.HTML(w, http.StatusOK, "hello", "gophers")
 	})
