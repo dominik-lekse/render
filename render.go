@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-
-	"github.com/fsnotify/fsnotify"
 )
 
 const (
@@ -191,7 +189,7 @@ func (r *Render) prepareOptions() {
 	if r.opt.BufferPool == nil {
 		r.opt.BufferPool = NewSizedBufferPool(32, 1<<19) // 32 buffers of size 512KiB each
 	}
-	if r.opt.IsDevelopment || r.opt.UseMutexLock {
+	if r.opt.Recompile || r.opt.UseMutexLock {
 		r.lock = &sync.RWMutex{}
 	} else {
 		r.lock = &emptyLock{}

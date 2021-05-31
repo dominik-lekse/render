@@ -11,7 +11,7 @@ import (
 )
 
 //go:embed testdata/*/*.html testdata/*/*.tmpl testdata/*/*/*.tmpl
-var EmbedFixtures embed.FS
+var EmbedTestData embed.FS
 
 func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 	baseDir := "testdata/template-dir-test"
@@ -20,7 +20,7 @@ func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 	fnameShouldParsedRel := "dedicated.tmpl/notbad"
 	dirShouldNotParsedRel := "dedicated"
 
-	fs, err := fs.Sub(EmbedFixtures, baseDir)
+	fs, err := fs.Sub(EmbedTestData, baseDir)
 	expectNil(t, err)
 
 	r, err := New(Options{
@@ -38,7 +38,7 @@ func TestEmbedFileSystemTemplateLookup(t *testing.T) {
 func TestEmbedFileSystemHTMLBasic(t *testing.T) {
 	var err error
 
-	fs, err := fs.Sub(EmbedFixtures, "fixtures/basic")
+	fs, err := fs.Sub(EmbedTestData, "testdata/basic")
 	expectNil(t, err)
 
 	render, err := New(Options{

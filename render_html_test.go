@@ -13,7 +13,7 @@ func TestHTMLBad(t *testing.T) {
 	var err error
 
 	render, err := New(Options{
-		FileSystem: LocalFS("fixtures/basic"),
+		FileSystem: LocalFS("testdata/basic"),
 	})
 	requireNoError(t, err)
 
@@ -375,24 +375,22 @@ func TestHTMLNoRace(t *testing.T) {
 }
 
 func TestHTMLLoadFromAssets(t *testing.T) {
-	t.Skip()
-
 	var err error
 
 	render, err := New(Options{
 		FileSystem: &AssetFS{
 			Asset: func(file string) ([]byte, error) {
 				switch file {
-				case "templates/test.tmpl":
+				case "test.tmpl":
 					return []byte("<h1>gophers</h1>\n"), nil
-				case "templates/layout.tmpl":
+				case "layout.tmpl":
 					return []byte("head\n{{ yield }}\nfoot\n"), nil
 				default:
 					return nil, errors.New("file not found: " + file)
 				}
 			},
 			AssetNames: func() []string {
-				return []string{"templates/test.tmpl", "templates/layout.tmpl"}
+				return []string{"test.tmpl", "layout.tmpl"}
 			},
 		},
 	})
@@ -427,7 +425,7 @@ func TestCompileTemplatesFromDir(t *testing.T) {
 	})
 	requireNoError(t, err)
 
-	err = r.compileTemplates()
+	err = r.CompileTemplates()
 	requireNoError(t, err)
 
 	expect(t, r.TemplateLookup(fname1Rel) != nil, true)

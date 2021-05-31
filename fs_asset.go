@@ -1,6 +1,6 @@
 package render
 
-// AssetFS
+// AssetFS implements FS using static assets
 type AssetFS struct {
 	// Asset function to use in place of directory. Defaults to nil.
 	Asset func(name string) ([]byte, error)

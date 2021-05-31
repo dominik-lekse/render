@@ -12,31 +12,37 @@ import (
 var ctx = context.Background()
 
 func TestLockConfig(t *testing.T) {
+	var err error
+
 	mutex := reflect.TypeOf(&sync.RWMutex{}).Kind()
 	empty := reflect.TypeOf(&emptyLock{}).Kind()
 
-	r1 := New(Options{
-		IsDevelopment: true,
-		UseMutexLock:  false,
+	r1, err := New(Options{
+		Recompile:    true,
+		UseMutexLock: false,
 	})
+	requireNoError(t, err)
 	expect(t, reflect.TypeOf(r1.lock).Kind(), mutex)
 
-	r2 := New(Options{
-		IsDevelopment: true,
-		UseMutexLock:  true,
+	r2, err := New(Options{
+		Recompile:    true,
+		UseMutexLock: true,
 	})
+	requireNoError(t, err)
 	expect(t, reflect.TypeOf(r2.lock).Kind(), mutex)
 
-	r3 := New(Options{
-		IsDevelopment: false,
-		UseMutexLock:  true,
+	r3, err := New(Options{
+		Recompile:    false,
+		UseMutexLock: true,
 	})
+	requireNoError(t, err)
 	expect(t, reflect.TypeOf(r3.lock).Kind(), mutex)
 
-	r4 := New(Options{
-		IsDevelopment: false,
-		UseMutexLock:  false,
+	r4, err := New(Options{
+		Recompile:    false,
+		UseMutexLock: false,
 	})
+	requireNoError(t, err)
 	expect(t, reflect.TypeOf(r4.lock).Kind(), empty)
 }
 

@@ -3,13 +3,16 @@
 package render
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 // FS is an alias for http.FileSystem for Go version < 1.16
@@ -83,9 +86,32 @@ func (r *Render) compileTemplatesFromFS() error {
 		return fmt.Errorf("one or more errors occurred while loading or parsing templates: %+v", errs)
 	}
 
-	r.templatesLk.Lock()
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.templates = tmpTemplates
-	r.templatesLk.Unlock()
+
+	if watcherFs, isWatcherFs := r.opt.FileSystem.(WatcherFS); isWatcherFs {
+		var watchErr error
+
+		go func() {
+			watcherEventChan, err := watcherFs.Watch()
+			if err != nil {
+				watchErr = err
+				return
+			}
+
+			<-watcherEventChan
+			err = r.CompileTemplates()
+			if err != nil {
+				watchErr = err
+				return
+			}
+		}()
+
+		if watchErr != nil {
+			return watchErr
+		}
+	}
 
 	return nil
 }
@@ -153,10 +179,121 @@ func readDir(fsys FS, name string) ([]os.FileInfo, error) {
 	return file.Readdir(-1)
 }
 
-// TODO implement AssetFS.Open with http.File
 func (a *AssetFS) Open(name string) (http.File, error) {
+	name = path.Clean(name)
+	names := a.AssetNames()
 
-	// a.AssetNames
-	// TODO implement assetFS
-	panic("implement me")
+	if name == "." {
+		// List assets
+		var ents []*staticFileInfo
+		for _, n := range names {
+			ents = append(ents, &staticFileInfo{
+				basename: n,
+				dir:      false,
+			})
+		}
+
+		return &staticFile{
+			reader: nil,
+			fileInfo: &staticFileInfo{
+				basename: name,
+				dir:      true,
+				ents:     ents,
+			},
+		}, nil
+	}
+
+	// Find asset
+	for _, n := range names {
+		if n == name {
+			assetContent, err := a.Asset(name)
+			if err != nil {
+				return nil, err
+			}
+
+			return &staticFile{
+				reader: bytes.NewReader(assetContent),
+				fileInfo: &staticFileInfo{
+					basename: name,
+					dir:      false,
+				},
+			}, nil
+		}
+	}
+
+	return nil, os.ErrNotExist
 }
+
+type staticFile struct {
+	reader   io.ReadSeeker
+	fileInfo *staticFileInfo
+	entpos   int
+}
+
+var _ http.File = &staticFile{}
+
+func (s *staticFile) Close() error {
+	if s.reader == nil {
+		return os.ErrInvalid
+	}
+	return nil
+}
+
+func (s *staticFile) Read(p []byte) (n int, err error) {
+	if s.reader == nil {
+		return 0, os.ErrInvalid
+	}
+	return s.reader.Read(p)
+}
+
+func (s *staticFile) Seek(offset int64, whence int) (int64, error) {
+	if s.reader == nil {
+		return 0, os.ErrInvalid
+	}
+	return s.reader.Seek(offset, whence)
+}
+
+func (s *staticFile) Readdir(count int) ([]os.FileInfo, error) {
+	if !s.fileInfo.dir {
+		return nil, os.ErrInvalid
+	}
+	var fis []os.FileInfo
+
+	limit := s.entpos + count
+	if count <= 0 || limit > len(s.fileInfo.ents) {
+		limit = len(s.fileInfo.ents)
+	}
+	for ; s.entpos < limit; s.entpos++ {
+		fis = append(fis, s.fileInfo.ents[s.entpos])
+	}
+
+	if len(fis) == 0 && count > 0 {
+		return fis, io.EOF
+	} else {
+		return fis, nil
+	}
+}
+
+func (s *staticFile) Stat() (os.FileInfo, error) { return s.fileInfo, nil }
+
+type staticFileInfo struct {
+	basename string
+	size     int64
+	dir      bool
+	modtime  time.Time
+	ents     []*staticFileInfo
+}
+
+var _ os.FileInfo = &staticFileInfo{}
+
+func (s *staticFileInfo) Name() string { return s.basename }
+func (s *staticFileInfo) Size() int64  { return s.size }
+func (s *staticFileInfo) Mode() os.FileMode {
+	if s.dir {
+		return 0755 | os.ModeDir
+	}
+	return 0644
+}
+func (s *staticFileInfo) ModTime() time.Time { return s.modtime }
+func (s *staticFileInfo) IsDir() bool        { return s.dir }
+func (s *staticFileInfo) Sys() interface{}   { return nil }
